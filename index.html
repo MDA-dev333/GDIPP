@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndustriaControl - Gestão Industrial com LocalStorage</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-blue: #1a365d;
+            --secondary-blue: #2d5a8c;
+            --accent-blue: #4a90e2;
+            --industrial-green: #2e8b57;
+            --action-orange: #f39c12;
+            --light-gray: #f5f7fa;
+            --medium-gray: #e1e5eb;
+            --dark-gray: #4a5568;
+            --white: #ffffff;
+            --shadow: rgba(0, 0, 0, 0.08);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-gray);
+            color: var(--dark-gray);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--medium-gray);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--primary-blue);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .modal-header h3 {
+            font-size: 20px;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+        
+        .close-modal:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-body {
+            padding: 25px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark-gray);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--medium-gray);
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        
+        select.form-control {
+            cursor: pointer;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background-color: var(--industrial-green);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .toast.error {
+            background-color: #e74c3c;
+        }
+        
+        .toast.warning {
+            background-color: var(--action-orange);
+        }
+        
+        /* Ajustes do layout anterior */
+        .dashboard {
+            padding: 30px 0;
+        }
+        
+        .welcome-section {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .welcome-text h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        
+        .entrada .stat-icon {
+            background-color: rgba(26, 54, 93, 0.1);
+            color: var(--primary-blue);
+        }
+        
+        .processamento .stat-icon {
+            background-color: rgba(46, 139, 87, 0.1);
+            color: var(--industrial-green);
+        }
+        
+        .saida .stat-icon {
+            background-color: rgba(243, 156, 18, 0.1);
+            color: var(--action-orange);
+        }
+        
+        .stat-info h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--dark-gray);
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-change {
+            font-size: 13px;
+        }
+        
+        .positive {
+            color: var(--industrial-green);
+        }
+        
+        .negative {
+            color: #e74c3c;
+        }
+        
+        .flow-section {
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            font-size: 22px;
+            color: var(--primary-blue);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--medium-gray);
+        }
+        
+        .industrial-flow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+        
+        .flow-card {
+            background-color: var(--white);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px var(--shadow);
+        }
+        
+        .flow-header {
+            padding: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .flow-header.entrada {
+            background-color: var(--primary-blue);
+        }
+        
+        .flow-header.processamento {
+            background-color: var(--industrial-green);
+        }
+        
+        .flow-header.saida {
+            background-color: var(--action-orange);
+        }
+        
+        .flow-body {
+            padding: 20px;
+            min-height: 220px;
+        }
+        
+        .flow-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--medium-gray);
+        }
+        
+        .flow-item:last-child {
+            border-bottom: none;
+        }
+        
+        .flow-item-info h4 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .flow-item-status {
+            font-size: 13px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .status-pendente {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-andamento {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-concluido {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .flow-actions {
+            padding: 15px 20px;
+            background-color: var(--light-gray);
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 15px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background-color: var(--accent-blue);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-blue);
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+        }
+        
+        .btn-outline:hover {
+            background-color: rgba(74, 144, 226, 0.1);
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-success {
+            background-color: var(--industrial-green);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #26734a;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--dark-gray);
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            color: var(--medium-gray);
+            margin-bottom: 15px;
+        }
+        
+        .empty-state p {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        /* Ações nos itens */
+        .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+        }
+        
+        .edit-btn {
+            color: var(--accent-blue);
+        }
+        
+        .edit-btn:hover {
+            background-color: rgba(74, 144, 226, 0.1);
+        }
+        
+        .delete-btn {
+            color: #e74c3c;
+        }
+        
+        .delete-btn:hover {
+            background-color: rgba(231, 76, 60, 0.1);
+        }
+        
+        .complete-btn {
+            color: var(--industrial-green);
+        }
+        
+        .complete-btn:hover {
+            background-color: rgba(46, 139, 87, 0.1);
+        }
+        
+        /* Cabeçalho e rodapé (mantidos do anterior) */
+        header {
+            background-color: var(--white);
+            box-shadow: 0 2px 15px var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            background: linear-gradient(135deg, var(--primary-blue), var(--accent-blue));
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: bold;
+        }
+        
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-blue);
+        }
+        
+        .logo-text span {
+            color: var(--industrial-green);
+        }
+        
+        .user-area {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--medium-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: var(--primary-blue);
+        }
+        
+        footer {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 40px 0 20px;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .footer-section h3 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: var(--accent-blue);
+        }
+        
+        .footer-section ul {
+            list-style: none;
+        }
+        
+        .footer-section ul li {
+            margin-bottom: 12px;
+        }
+        
+        .footer-section a {
+            color: #cbd5e0;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-section a:hover {
+            color: white;
+        }
+        
+        .copyright {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #a0aec0;
+            font-size: 14px;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 992px) {
+            .industrial-flow {
+                grid-template-columns: 1fr;
+            }
+            
+            .welcome-section {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .flow-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Cabeçalho -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">IC</div>
+                    <div class="logo-text">Industria<span>Control</span></div>
+                </div>
+                
+                <div class="user-area">
+                    <div class="user-profile">
+                        <div class="avatar">GS</div>
+                        <div>
+                            <div style="font-weight: 600;">Gestor Sistema</div>
+                            <div style="font-size: 13px; color: var(--dark-gray);">Administrador</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Dashboard Principal -->
+    <main class="dashboard">
+        <div class="container">
+            <!-- Boas-vindas -->
+            <section class="welcome-section">
+                <div class="welcome-text">
+                    <h1>Controle Industrial com LocalStorage</h1>
+                    <p>Todos os dados são salvos no seu navegador. Exporte para backup!</p>
+                </div>
+                <div>
+                    <button class="btn btn-outline" id="exportBtn" style="margin-right: 10px;">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                    <button class="btn btn-primary" id="importBtn">
+                        <i class="fas fa-upload"></i> Importar
+                    </button>
+                </div>
+            </section>
+            
+            <!-- Estatísticas Rápidas -->
+            <section class="quick-stats">
+                <div class="stat-card entrada" id="statEntrada">
+                    <div class="stat-icon">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Entrada (Fornecimento)</h3>
+                        <div class="stat-value" id="entradaValue">R$ 0</div>
+                        <div class="stat-change" id="entradaChange">
+                            <i class="fas fa-box"></i> <span id="entradaCount">0</span> itens
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card processamento" id="statProcessamento">
+                    <div class="stat-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Em Processamento</h3>
+                        <div class="stat-value" id="processamentoValue">0</div>
+                        <div class="stat-change" id="processamentoChange">
+                            <i class="fas fa-tasks"></i> <span id="processamentoCount">0</span> ordens
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card saida" id="statSaida">
+                    <div class="stat-icon">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Saída (Vendas)</h3>
+                        <div class="stat-value" id="saidaValue">R$ 0</div>
+                        <div class="stat-change" id="saidaChange">
+                            <i class="fas fa-shopping-cart"></i> <span id="saidaCount">0</span> pedidos
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Fluxo Industrial -->
+            <section class="flow-section">
+                <h2 class="section-title">Fluxo Industrial Integrado</h2>
+                
+                <div class="industrial-flow">
+                    <!-- Card Entrada -->
+                    <div class="flow-card">
+                        <div class="flow-header entrada">
+                            <h3><i class="fas fa-arrow-down"></i> Entrada & Estoque</h3>
+                            <span class="badge" id="entradaBadge">0 itens</span>
+                        </div>
+                        <div class="flow-body" id="entradaList">
+                            <!-- Itens serão carregados aqui via JavaScript -->
+                            <div class="empty-state">
+                                <i class="fas fa-box-open"></i>
+                                <p>Nenhum item de entrada registrado</p>
+                                <button class="btn btn-outline btn-sm" id="addEntradaBtn">Adicionar primeiro item</button>
+                            </div>
+                        </div>
+                        <div class="flow-actions">
+                            <button class="btn btn-outline" id="viewAllEntrada">Ver Todos</button>
+                            <button class="btn btn-primary" id="newEntradaBtn">
+                                <i class="fas fa-plus"></i> Novo Recebimento
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Card Processamento -->
+                    <div class="flow-card">
+                        <div class="flow-header processamento">
+                            <h3><i class="fas fa-cogs"></i> Processamento</h3>
+                            <span class="badge" id="processamentoBadge">0 ordens</span>
+                        </div>
+                        <div class="flow-body" id="processamentoList">
+                            <!-- Itens serão carregados aqui via JavaScript -->
+                            <div class="empty-state">
+                                <i class="fas fa-cogs"></i>
+                                <p>Nenhuma ordem de produção</p>
+                                <button class="btn btn-outline btn-sm" id="addProcessamentoBtn">Criar primeira ordem</button>
+                            </div>
+                        </div>
+                        <div class="flow-actions">
+                            <button class="btn btn-outline" id="viewAllProcessamento">Ver Ordens</button>
+                            <button class="btn btn-primary" id="newProcessamentoBtn">
+                                <i class="fas fa-play-circle"></i> Nova Ordem
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Card Saída -->
+                    <div class="flow-card">
+                        <div class="flow-header saida">
+                            <h3><i class="fas fa-arrow-up"></i> Vendas & Saída</h3>
+                            <span class="badge" id="saidaBadge">0 pedidos</span>
+                        </div>
+                        <div class="flow-body" id="saidaList">
+                            <!-- Itens serão carregados aqui via JavaScript -->
+                            <div class="empty-state">
+                                <i class="fas fa-truck"></i>
+                                <p>Nenhum pedido de venda</p>
+                                <button class="btn btn-outline btn-sm" id="addSaidaBtn">Criar primeiro pedido</button>
+                            </div>
+                        </div>
+                        <div class="flow-actions">
+                            <button class="btn btn-outline" id="viewAllSaida">Ver Pedidos</button>
+                            <button class="btn btn-primary" id="newSaidaBtn">
+                                <i class="fas fa-file-invoice-dollar"></i> Novo Pedido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+    
+    <!-- Modais -->
+    <!-- Modal para Entrada -->
+    <div class="modal" id="entradaModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="entradaModalTitle">Novo Recebimento</h3>
+                <button class="close-modal" id="closeEntradaModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="entradaForm">
+                    <input type="hidden" id="entradaId">
+                    <div class="form-group">
+                        <label for="entradaProduto">Produto/Material</label>
+                        <input type="text" id="entradaProduto" class="form-control" required placeholder="Ex: Aço Inoxidável, Componentes Elétricos">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="entradaQuantidade">Quantidade</label>
+                            <input type="number" id="entradaQuantidade" class="form-control" required min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="entradaUnidade">Unidade</label>
+                            <select id="entradaUnidade" class="form-control">
+                                <option value="kg">kg</option>
+                                <option value="un">unidade</option>
+                                <option value="m">metro</option>
+                                <option value="lt">litro</option>
+                                <option value="cx">caixa</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="entradaFornecedor">Fornecedor</label>
+                        <input type="text" id="entradaFornecedor" class="form-control" required placeholder="Ex: Metalúrgica XYZ">
+                    </div>
+                    <div class="form-group">
+                        <label for="entradaValor">Valor (R$)</label>
+                        <input type="number" id="entradaValor" class="form-control" required min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="entradaStatus">Status</label>
+                        <select id="entradaStatus" class="form-control">
+                            <option value="pendente">Pendente</option>
+                            <option value="andamento">Em Transporte</option>
+                            <option value="concluido">Recebido</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="entradaObservacao">Observações</label>
+                        <textarea id="entradaObservacao" class="form-control" rows="3" placeholder="Detalhes adicionais..."></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 25px;">
+                        <button type="button" class="btn btn-outline" id="cancelEntrada" style="flex: 1;">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Recebimento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para Processamento -->
+    <div class="modal" id="processamentoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="processamentoModalTitle">Nova Ordem de Produção</h3>
+                <button class="close-modal" id="closeProcessamentoModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="processamentoForm">
+                    <input type="hidden" id="processamentoId">
+                    <div class="form-group">
+                        <label for="processamentoCodigo">Código da Ordem</label>
+                        <input type="text" id="processamentoCodigo" class="form-control" required placeholder="Ex: OP-2023-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="processamentoProduto">Produto a Ser Fabricado</label>
+                        <input type="text" id="processamentoProduto" class="form-control" required placeholder="Ex: Componente Mecânico">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="processamentoQuantidade">Quantidade</label>
+                            <input type="number" id="processamentoQuantidade" class="form-control" required min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="processamentoPrioridade">Prioridade</label>
+                            <select id="processamentoPrioridade" class="form-control">
+                                <option value="baixa">Baixa</option>
+                                <option value="media">Média</option>
+                                <option value="alta">Alta</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="processamentoStatus">Status</label>
+                        <select id="processamentoStatus" class="form-control">
+                            <option value="pendente">Pendente</option>
+                            <option value="andamento">Em Produção</option>
+                            <option value="concluido">Finalizado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="processamentoObservacao">Instruções/Detalhes</label>
+                        <textarea id="processamentoObservacao" class="form-control" rows="3" placeholder="Passos de produção, matérias-primas necessárias..."></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 25px;">
+                        <button type="button" class="btn btn-outline" id="cancelProcessamento" style="flex: 1;">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Ordem</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para Saída -->
+    <div class="modal" id="saidaModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="saidaModalTitle">Novo Pedido de Venda</h3>
+                <button class="close-modal" id="closeSaidaModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="saidaForm">
+                    <input type="hidden" id="saidaId">
+                    <div class="form-group">
+                        <label for="saidaCliente">Cliente</label>
+                        <input type="text" id="saidaCliente" class="form-control" required placeholder="Ex: Indústria ABC, Comércio XYZ">
+                    </div>
+                    <div class="form-group">
+                        <label for="saidaProduto">Produto Vendido</label>
+                        <input type="text" id="saidaProduto" class="form-control" required placeholder="Ex: Componente Final, Produto Acabado">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="saidaQuantidade">Quantidade</label>
+                            <input type="number" id="saidaQuantidade" class="form-control" required min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="saidaValor">Valor (R$)</label>
+                            <input type="number" id="saidaValor" class="form-control" required min="0" step="0.01" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="saidaStatus">Status</label>
+                        <select id="saidaStatus" class="form-control">
+                            <option value="pendente">Aguardando</option>
+                            <option value="andamento">Em Separação</option>
+                            <option value="concluido">Entregue</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="saidaObservacao">Observações</label>
+                        <textarea id="saidaObservacao" class="form-control" rows="3" placeholder="Forma de pagamento, endereço de entrega..."></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 25px;">
+                        <button type="button" class="btn btn-outline" id="cancelSaida" style="flex: 1;">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Pedido</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para Importação -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Importar Dados</h3>
+                <button class="close-modal" id="closeImportModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="importData">Cole aqui os dados exportados (JSON):</label>
+                    <textarea id="importData" class="form-control" rows="10" placeholder='{"entradas": [...], "processamentos": [...], "saidas": [...]}'></textarea>
+                </div>
+                <div class="form-group">
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" class="btn btn-outline" id="cancelImport" style="flex: 1;">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="confirmImport" style="flex: 1;">Importar Dados</button>
+                    </div>
+                </div>
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 20px;">
+                    <p style="margin-bottom: 10px; font-size: 14px;"><strong>Atenção:</strong> Importar dados substituirá todos os dados atuais.</p>
+                    <button type="button" class="btn btn-outline btn-sm" id="loadSampleData">Carregar Dados de Exemplo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Operação realizada com sucesso!</span>
+    </div>
+    
+    <!-- Rodapé -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>IndustriaControl</h3>
+                    <p>Sistema de gestão industrial com LocalStorage. Todos os dados são salvos no seu navegador.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Como Funciona</h3>
+                    <ul>
+                        <li><a href="#" id="showHelp">Usar o LocalStorage</a></li>
+                        <li><a href="#" id="showExportHelp">Exportar/Importar Dados</a></li>
+                        <li><a href="#" id="clearAllData">Limpar Todos os Dados</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Dados Armazenados</h3>
+                    <ul>
+                        <li id="storageEntradas">Entradas: 0 itens</li>
+                        <li id="storageProcessamentos">Processamentos: 0 ordens</li>
+                        <li id="storageSaidas">Saídas: 0 pedidos</li>
+                        <li id="storageTotal">Total: 0 registros</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="copyright">
+                &copy; 2023 IndustriaControl. Dados salvos no LocalStorage do navegador.
+                <br>Use a função de exportação para fazer backup.
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // ============================================
+        // SISTEMA DE LOCALSTORAGE - INDUSTRIACONTROL
+        // ============================================
+        
+        // Chaves do LocalStorage
+        const STORAGE_KEYS = {
+            ENTRADAS: 'industriaControl_entradas',
+            PROCESSAMENTOS: 'industriaControl_processamentos',
+            SAIDAS: 'industriaControl_saidas'
+        };
+        
+        // Dados iniciais de exemplo
+        const SAMPLE_DATA = {
+            entradas: [
+                {
+                    id: Date.now() + 1,
+                    produto: "Aço Inoxidável",
+                    quantidade: 500,
+                    unidade: "kg",
+                    fornecedor: "Metalúrgica Nacional",
+                    valor: 4250.00,
+                    status: "concluido",
+                    observacao: "Lote A234, qualidade verificada",
+                    data: "2023-10-15"
+                },
+                {
+                    id: Date.now() + 2,
+                    produto: "Componentes Elétricos",
+                    quantidade: 120,
+                    unidade: "un",
+                    fornecedor: "EletroParts Ltda",
+                    valor: 1850.00,
+                    status: "andamento",
+                    observacao: "Previsão de entrega: 25/10",
+                    data: "2023-10-18"
+                }
+            ],
+            processamentos: [
+                {
+                    id: Date.now() + 3,
+                    codigo: "OP-2023-0456",
+                    produto: "Componente Mecânico",
+                    quantidade: 100,
+                    prioridade: "alta",
+                    status: "andamento",
+                    observacao: "Usar aço inox do lote A234",
+                    data: "2023-10-16"
+                },
+                {
+                    id: Date.now() + 4,
+                    codigo: "OP-2023-0455",
+                    produto: "Conjunto Hidráulico",
+                    quantidade: 50,
+                    prioridade: "media",
+                    status: "concluido",
+                    observacao: "Produto finalizado e embalado",
+                    data: "2023-10-14"
+                }
+            ],
+            saidas: [
+                {
+                    id: Date.now() + 5,
+                    cliente: "Indústria ABC",
+                    produto: "Componente Mecânico",
+                    quantidade: 80,
+                    valor: 12450.00,
+                    status: "concluido",
+                    observacao: "Entregue com nota fiscal #7890",
+                    data: "2023-10-17"
+                },
+                {
+                    id: Date.now() + 6,
+                    cliente: "Comércio XYZ",
+                    produto: "Conjunto Hidráulico",
+                    quantidade: 25,
+                    valor: 8320.00,
+                    status: "andamento",
+                    observacao: "Aguardando separação no estoque",
+                    data: "2023-10-19"
+                }
+            ]
+        };
+        
+        // ============================================
+        // FUNÇÕES DE LOCALSTORAGE
+        // ============================================
+        
+        // Inicializar dados no LocalStorage
+        function initStorage() {
+            if (!localStorage.getItem(STORAGE_KEYS.ENTRADAS)) {
+                localStorage.setItem(STORAGE_KEYS.ENTRADAS, JSON.stringify([]));
+            }
+            
+            if (!localStorage.getItem(STORAGE_KEYS.PROCESSAMENTOS)) {
+                localStorage.setItem(STORAGE_KEYS.PROCESSAMENTOS, JSON.stringify([]));
+            }
+            
+            if (!localStorage.getItem(STORAGE_KEYS.SAIDAS)) {
+                localStorage.setItem(STORAGE_KEYS.SAIDAS, JSON.stringify([]));
+            }
+        }
+        
+        // Obter dados do LocalStorage
+        function getEntradas() {
+            return JSON.parse(localStorage.getItem(STORAGE_KEYS.ENTRADAS)) || [];
+        }
+        
+        function getProcessamentos() {
+            return JSON.parse(localStorage.getItem(STORAGE_KEYS.PROCESSAMENTOS)) || [];
+        }
+        
+        function getSaidas() {
+            return JSON.parse(localStorage.getItem(STORAGE_KEYS.SAIDAS)) || [];
+        }
+        
+        // Salvar dados no LocalStorage
+        function saveEntradas(entradas) {
+            localStorage.setItem(STORAGE_KEYS.ENTRADAS, JSON.stringify(entradas));
+        }
+        
+        function saveProcessamentos(processamentos) {
+            localStorage.setItem(STORAGE_KEYS.PROCESSAMENTOS, JSON.stringify(processamentos));
+        }
+        
+        function saveSaidas(saidas) {
+            localStorage.setItem(STORAGE_KEYS.SAIDAS, JSON.stringify(saidas));
+        }
+        
+        // Adicionar um novo item
+        function addEntrada(entrada) {
+            const entradas = getEntradas();
+            entrada.id = Date.now();
+            entrada.data = new Date().toISOString().split('T')[0];
+            entradas.push(entrada);
+            saveEntradas(entradas);
+            return entrada;
+        }
+        
+        function addProcessamento(processamento) {
+            const processamentos = getProcessamentos();
+            processamento.id = Date.now();
+            processamento.data = new Date().toISOString().split('T')[0];
+            processamentos.push(processamento);
+            saveProcessamentos(processamentos);
+            return processamento;
+        }
+        
+        function addSaida(saida) {
+            const saidas = getSaidas();
+            saida.id = Date.now();
+            saida.data = new Date().toISOString().split('T')[0];
+            saidas.push(saida);
+            saveSaidas(saidas);
+            return saida;
+        }
+        
+        // Atualizar um item
+        function updateEntrada(id, updatedEntrada) {
+            let entradas = getEntradas();
+            entradas = entradas.map(entrada => 
+                entrada.id === id ? {...entrada, ...updatedEntrada} : entrada
+            );
+            saveEntradas(entradas);
+        }
+        
+        function updateProcessamento(id, updatedProcessamento) {
+            let processamentos = getProcessamentos();
+            processamentos = processamentos.map(processamento => 
+                processamento.id === id ? {...processamento, ...updatedProcessamento} : processamento
+            );
+            saveProcessamentos(processamentos);
+        }
+        
+        function updateSaida(id, updatedSaida) {
+            let saidas = getSaidas();
+            saidas = saidas.map(saida => 
+                saida.id === id ? {...saida, ...updatedSaida} : saida
+            );
+            saveSaidas(saidas);
+        }
+        
+        // Remover um item
+        function deleteEntrada(id) {
+            let entradas = getEntradas();
+            entradas = entradas.filter(entrada => entrada.id !== id);
+            saveEntradas(entradas);
+        }
+        
+        function deleteProcessamento(id) {
+            let processamentos = getProcessamentos();
+            processamentos = processamentos.filter(processamento => processamento.id !== id);
+            saveProcessamentos(processamentos);
+        }
+        
+        function deleteSaida(id) {
+            let saidas = getSaidas();
+            saidas = saidas.filter(saida => saida.id !== id);
+            saveSaidas(saidas);
+        }
+        
+        // Exportar todos os dados
+        function exportData() {
+            const data = {
+                entradas: getEntradas(),
+                processamentos: getProcessamentos(),
+                saidas: getSaidas(),
+                exportDate: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `industriaControl_backup_${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            showToast('Dados exportados com sucesso!');
+        }
+        
+        // Importar dados
+        function importData(jsonData) {
+            try {
+                const data = JSON.parse(jsonData);
+                
+                if (data.entradas) {
+                    saveEntradas(data.entradas);
+                }
+                
+                if (data.processamentos) {
+                    saveProcessamentos(data.processamentos);
+                }
+                
+                if (data.saidas) {
+                    saveSaidas(data.saidas);
+                }
+                
+                showToast('Dados importados com sucesso!');
+                return true;
+            } catch (error) {
+                showToast('Erro ao importar dados. Verifique o formato JSON.', 'error');
+                return false;
+            }
+        }
+        
+        // Carregar dados de exemplo
+        function loadSampleData() {
+            saveEntradas(SAMPLE_DATA.entradas);
+            saveProcessamentos(SAMPLE_DATA.processamentos);
+            saveSaidas(SAMPLE_DATA.saidas);
+            showToast('Dados de exemplo carregados!', 'success');
+        }
+        
+        // Limpar todos os dados
+        function clearAllData() {
+            if (confirm('Tem certeza que deseja apagar todos os dados? Esta ação não pode ser desfeita.')) {
+                saveEntradas([]);
+                saveProcessamentos([]);
+                saveSaidas([]);
+                showToast('Todos os dados foram apagados.', 'warning');
+                updateUI();
+            }
+        }
+        
+        // ============================================
+        // FUNÇÕES DE INTERFACE
+        // ============================================
+        
+        // Atualizar a interface com os dados
+        function updateUI() {
+            updateEntradasUI();
+            updateProcessamentosUI();
+            updateSaidasUI();
+            updateStats();
+            updateStorageInfo();
+        }
+        
+        // Atualizar lista de entradas
+        function updateEntradasUI() {
+            const entradas = getEntradas();
+            const container = document.getElementById('entradaList');
+            
+            if (entradas.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-box-open"></i>
+                        <p>Nenhum item de entrada registrado</p>
+                        <button class="btn btn-outline btn-sm" id="addEntradaBtn">Adicionar primeiro item</button>
+                    </div>
+                `;
+                document.getElementById('addEntradaBtn').addEventListener('click', () => openEntradaModal());
+                return;
+            }
+            
+            // Ordenar por data (mais recente primeiro) e pegar os 3 primeiros
+            const recentEntradas = [...entradas]
+                .sort((a, b) => new Date(b.data) - new Date(a.data))
+                .slice(0, 3);
+            
+            container.innerHTML = recentEntradas.map(entrada => `
+                <div class="flow-item" data-id="${entrada.id}">
+                    <div class="flow-item-info">
+                        <h4>${entrada.produto}</h4>
+                        <div class="text-muted">${entrada.fornecedor} • ${entrada.quantidade} ${entrada.unidade}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="action-btn edit-btn" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete-btn" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Adicionar eventos aos botões
+            container.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.closest('.flow-item').dataset.id);
+                    editEntrada(id);
+                });
+            });
+            
+            container.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.closest('.flow-item').dataset.id);
+                    deleteEntrada(id);
+                    updateUI();
+                    showToast('Entrada removida!');
+                });
+            });
+            
+            // Atualizar badge
+            document.getElementById('entradaBadge').textContent = `${entradas.length} ${entradas.length === 1 ? 'item' : 'itens'}`;
+        }
+        
+        // Atualizar lista de processamentos
+        function updateProcessamentosUI() {
+            const processamentos = getProcessamentos();
+            const container = document.getElementById('processamentoList');
+            
+            if (processamentos.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-cogs"></i>
+                        <p>Nenhuma ordem de produção</p>
+                        <button class="btn btn-outline btn-sm" id="addProcessamentoBtn">Criar primeira ordem</button>
+                    </div>
+                `;
+                document.getElementById('addProcessamentoBtn').addEventListener('click', () => openProcessamentoModal());
+                return;
+            }
+            
+            const recentProcessamentos = [...processamentos]
+                .sort((a, b) => new Date(b.data) - new Date(a.data))
+                .slice(0, 3);
+            
+            container.innerHTML = recentProcessamentos.map(processamento => `
+                <div class="flow-item" data-id="${processamento.id}">
+                    <div class="flow-item-info">
+                        <h4>${processamento.codigo}</h4>
+                        <div class="text-muted">${processamento.produto} • ${processamento.quantidade} un</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="action-btn complete-btn" title="${processamento.status === 'concluido' ? 'Reabrir' : 'Concluir'}">
+                            <i class="fas ${processamento.status === 'concluido' ? 'fa-redo' : 'fa-check'}"></i>
+                        </button>
+                        <button class="action-btn edit-btn" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete-btn" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Adicionar eventos aos botões
+            container.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.closest('.flow-item').dataset.id);
+                    editProcessamento(id);
+                });
+            });
+            
+            container.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.closest('.flow-item').dataset.id);
+                    deleteProcessamento(id);
+                    updateUI();
+                    showToast('Ordem removida!');
+                });
+            });
+            
+            container.querySelectorAll('.complete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.closest('.flow-item').dataset.id);
+                    const processamentos = getProcessamentos();
+                    const processamento = processamentos.find(p => p.id === id);
+                    
+                    if (processamento) {
+                        const newStatus = processamento.status === 'concluido' ? 'pendente' : 'concluido';
+                        updateProcessamento(id, { status: newStatus });
+                        updateUI();
+                        showToast(`Ordem ${newStatus === 'concluido' ? 'concluída' : 'reaberta'}!`);
+                    }
+                });
+            });
+            
+            document.getElementById('processamentoBadge').textContent = `${processamentos.length} ${processamentos.length === 1 ? 'ordem' : 'ordens'}`;
+        }
+        
+        // Atualizar lista de saídas
+        function updateSaidasUI() {
+            const saidas = getSaidas();
+            const container = document.getElementById('saidaList');
+            
+            if (saidas.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-truck"></i>
+                        <p>Nenhum pedido de venda</p>
+                        <button class="btn btn-outline btn-sm" id="addSaidaBtn">Criar primeiro pedido</button>
+                    </div>
+                `;
+                document.getElementById('addSaidaBtn').addEventListener('click', () => openSaidaModal());
+                return;
+            }
+            
+            const recentSaidas = [...saidas]
+                .sort((a, b) => new Date(b.data) - new Date(a.data))
+                .slice(0, 3);
+            
+            container.innerHTML = recentSaidas.map(saida => `
+                <div class="flow-item" data-id="${saida.id}">
+                    <div class="flow-item-info">
+                        <h4>${saida.cliente}</h4>
+                        <div class="text-muted">${saida.produto} • R$ ${parseFloat(saida.valor).toFixed(2)}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="action-btn edit-btn" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete-btn" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Adicionar eventos aos botões
+            container.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.closest('.flow-item').dataset.id);
+                    editSaida(id);
+                });
+            });
+            
+            container.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.closest('.flow-item').dataset.id);
+                    deleteSaida(id);
+                    updateUI();
+                    showToast('Pedido removido!');
+                });
+            });
+            
+            document.getElementById('saidaBadge').textContent = `${saidas.length} ${saidas.length === 1 ? 'pedido' : 'pedidos'}`;
+        }
+        
+        // Atualizar estatísticas
+        function updateStats() {
+            const entradas = getEntradas();
+            const processamentos = getProcessamentos();
+            const saidas = getSaidas();
+            
+            // Calcular totais
+            const totalEntradas = entradas.reduce((sum, entrada) => sum + parseFloat(entrada.valor || 0), 0);
+            const totalSaidas = saidas.reduce((sum, saida) => sum + parseFloat(saida.valor || 0), 0);
+            
+            // Atualizar valores
+            document.getElementById('entradaValue').textContent = `R$ ${totalEntradas.toFixed(2)}`;
+            document.getElementById('entradaCount').textContent = entradas.length;
+            document.getElementById('entradaChange').innerHTML = `<i class="fas fa-box"></i> ${entradas.length} ${entradas.length === 1 ? 'item' : 'itens'}`;
+            
+            const processamentosAtivos = processamentos.filter(p => p.status !== 'concluido').length;
+            document.getElementById('processamentoValue').textContent = processamentosAtivos;
+            document.getElementById('processamentoCount').textContent = processamentos.length;
+            document.getElementById('processamentoChange').innerHTML = `<i class="fas fa-tasks"></i> ${processamentos.length} ${processamentos.length === 1 ? 'ordem' : 'ordens'}`;
+            
+            document.getElementById('saidaValue').textContent = `R$ ${totalSaidas.toFixed(2)}`;
+            document.getElementById('saidaCount').textContent = saidas.length;
+            document.getElementById('saidaChange').innerHTML = `<i class="fas fa-shopping-cart"></i> ${saidas.length} ${saidas.length === 1 ? 'pedido' : 'pedidos'}`;
+        }
+        
+        // Atualizar informações de armazenamento
+        function updateStorageInfo() {
+            const entradas = getEntradas();
+            const processamentos = getProcessamentos();
+            const saidas = getSaidas();
+            const total = entradas.length + processamentos.length + saidas.length;
+            
+            document.getElementById('storageEntradas').textContent = `Entradas: ${entradas.length} itens`;
+            document.getElementById('storageProcessamentos').textContent = `Processamentos: ${processamentos.length} ordens`;
+            document.getElementById('storageSaidas').textContent = `Saídas: ${saidas.length} pedidos`;
+            document.getElementById('storageTotal').textContent = `Total: ${total} registros`;
+        }
+        
+        // ============================================
+        // MODAIS E FORMULÁRIOS
+        // ============================================
+        
+        // Modal de Entrada
+        function openEntradaModal(entrada = null) {
+            const modal = document.getElementById('entradaModal');
+            const title = document.getElementById('entradaModalTitle');
+            const form = document.getElementById('entradaForm');
+            
+            if (entrada) {
+                title.textContent = 'Editar Recebimento';
+                document.getElementById('entradaId').value = entrada.id;
+                document.getElementById('entradaProduto').value = entrada.produto;
+                document.getElementById('entradaQuantidade').value = entrada.quantidade;
+                document.getElementById('entradaUnidade').value = entrada.unidade;
+                document.getElementById('entradaFornecedor').value = entrada.fornecedor;
+                document.getElementById('entradaValor').value = entrada.valor;
+                document.getElementById('entradaStatus').value = entrada.status;
+                document.getElementById('entradaObservacao').value = entrada.observacao || '';
+            } else {
+                title.textContent = 'Novo Recebimento';
+                form.reset();
+                document.getElementById('entradaId').value = '';
+                document.getElementById('entradaStatus').value = 'pendente';
+            }
+            
+            modal.classList.add('active');
+        }
+        
+        function closeEntradaModal() {
+            document.getElementById('entradaModal').classList.remove('active');
+        }
+        
+        // Modal de Processamento
+        function openProcessamentoModal(processamento = null) {
+            const modal = document.getElementById('processamentoModal');
+            const title = document.getElementById('processamentoModalTitle');
+            const form = document.getElementById('processamentoForm');
+            
+            if (processamento) {
+                title.textContent = 'Editar Ordem de Produção';
+                document.getElementById('processamentoId').value = processamento.id;
+                document.getElementById('processamentoCodigo').value = processamento.codigo;
+                document.getElementById('processamentoProduto').value = processamento.produto;
+                document.getElementById('processamentoQuantidade').value = processamento.quantidade;
+                document.getElementById('processamentoPrioridade').value = processamento.prioridade;
+                document.getElementById('processamentoStatus').value = processamento.status;
+                document.getElementById('processamentoObservacao').value = processamento.observacao || '';
+            } else {
+                title.textContent = 'Nova Ordem de Produção';
+                form.reset();
+                document.getElementById('processamentoId').value = '';
+                document.getElementById('processamentoCodigo').value = `OP-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+                document.getElementById('processamentoStatus').value = 'pendente';
+                document.getElementById('processamentoPrioridade').value = 'media';
+            }
+            
+            modal.classList.add('active');
+        }
+        
+        function closeProcessamentoModal() {
+            document.getElementById('processamentoModal').classList.remove('active');
+        }
+        
+        // Modal de Saída
+        function openSaidaModal(saida = null) {
+            const modal = document.getElementById('saidaModal');
+            const title = document.getElementById('saidaModalTitle');
+            const form = document.getElementById('saidaForm');
+            
+            if (saida) {
+                title.textContent = 'Editar Pedido de Venda';
+                document.getElementById('saidaId').value = saida.id;
+                document.getElementById('saidaCliente').value = saida.cliente;
+                document.getElementById('saidaProduto').value = saida.produto;
+                document.getElementById('saidaQuantidade').value = saida.quantidade;
+                document.getElementById('saidaValor').value = saida.valor;
+                document.getElementById('saidaStatus').value = saida.status;
+                document.getElementById('saidaObservacao').value = saida.observacao || '';
+            } else {
+                title.textContent = 'Novo Pedido de Venda';
+                form.reset();
+                document.getElementById('saidaId').value = '';
+                document.getElementById('saidaStatus').value = 'pendente';
+            }
+            
+            modal.classList.add('active');
+        }
+        
+        function closeSaidaModal() {
+            document.getElementById('saidaModal').classList.remove('active');
+        }
+        
+        // Modal de Importação
+        function openImportModal() {
+            document.getElementById('importModal').classList.add('active');
+        }
+        
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+        }
+        
+        // Funções para editar itens
+        function editEntrada(id) {
+            const entradas = getEntradas();
+            const entrada = entradas.find(e => e.id === id);
+            if (entrada) {
+                openEntradaModal(entrada);
+            }
+        }
+        
+        function editProcessamento(id) {
+            const processamentos = getProcessamentos();
+            const processamento = processamentos.find(p => p.id === id);
+            if (processamento) {
+                openProcessamentoModal(processamento);
+            }
+        }
+        
+        function editSaida(id) {
+            const saidas = getSaidas();
+            const saida = saidas.find(s => s.id === id);
+            if (saida) {
+                openSaidaModal(saida);
+            }
+        }
+        
+        // ============================================
+        // TOAST NOTIFICATIONS
+        // ============================================
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            toast.className = 'toast';
+            toast.classList.add(type);
+            
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar LocalStorage
+            initStorage();
+            
+            // Atualizar interface
+            updateUI();
+            
+            // Botões para abrir modais
+            document.getElementById('newEntradaBtn').addEventListener('click', () => openEntradaModal());
+            document.getElementById('newProcessamentoBtn').addEventListener('click', () => openProcessamentoModal());
+            document.getElementById('newSaidaBtn').addEventListener('click', () => openSaidaModal());
+            
+            // Botões de view all (simples)
+            document.getElementById('viewAllEntrada').addEventListener('click', () => {
+                showToast('Mostrando todas as entradas (funcionalidade completa em desenvolvimento)', 'warning');
+            });
+            
+            document.getElementById('viewAllProcessamento').addEventListener('click', () => {
+                showToast('Mostrando todas as ordens (funcionalidade completa em desenvolvimento)', 'warning');
+            });
+            
+            document.getElementById('viewAllSaida').addEventListener('click', () => {
+                showToast('Mostrando todas as saídas (funcionalidade completa em desenvolvimento)', 'warning');
+            });
+            
+            // Fechar modais
+            document.getElementById('closeEntradaModal').addEventListener('click', closeEntradaModal);
+            document.getElementById('closeProcessamentoModal').addEventListener('click', closeProcessamentoModal);
+            document.getElementById('closeSaidaModal').addEventListener('click', closeSaidaModal);
+            document.getElementById('closeImportModal').addEventListener('click', closeImportModal);
+            
+            document.getElementById('cancelEntrada').addEventListener('click', closeEntradaModal);
+            document.getElementById('cancelProcessamento').addEventListener('click', closeProcessamentoModal);
+            document.getElementById('cancelSaida').addEventListener('click', closeSaidaModal);
+            document.getElementById('cancelImport').addEventListener('click', closeImportModal);
+            
+            // Fechar modal ao clicar fora
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                    }
+                });
+            });
+            
+            // Formulários
+            document.getElementById('entradaForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const id = document.getElementById('entradaId').value;
+                const entrada = {
+                    produto: document.getElementById('entradaProduto').value,
+                    quantidade: parseInt(document.getElementById('entradaQuantidade').value),
+                    unidade: document.getElementById('entradaUnidade').value,
+                    fornecedor: document.getElementById('entradaFornecedor').value,
+                    valor: parseFloat(document.getElementById('entradaValor').value),
+                    status: document.getElementById('entradaStatus').value,
+                    observacao: document.getElementById('entradaObservacao').value
+                };
+                
+                if (id) {
+                    updateEntrada(parseInt(id), entrada);
+                    showToast('Entrada atualizada com sucesso!');
+                } else {
+                    addEntrada(entrada);
+                    showToast('Entrada adicionada com sucesso!');
+                }
+                
+                closeEntradaModal();
+                updateUI();
+            });
+            
+            document.getElementById('processamentoForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const id = document.getElementById('processamentoId').value;
+                const processamento = {
+                    codigo: document.getElementById('processamentoCodigo').value,
+                    produto: document.getElementById('processamentoProduto').value,
+                    quantidade: parseInt(document.getElementById('processamentoQuantidade').value),
+                    prioridade: document.getElementById('processamentoPrioridade').value,
+                    status: document.getElementById('processamentoStatus').value,
+                    observacao: document.getElementById('processamentoObservacao').value
+                };
+                
+                if (id) {
+                    updateProcessamento(parseInt(id), processamento);
+                    showToast('Ordem atualizada com sucesso!');
+                } else {
+                    addProcessamento(processamento);
+                    showToast('Ordem adicionada com sucesso!');
+                }
+                
+                closeProcessamentoModal();
+                updateUI();
+            });
+            
+            document.getElementById('saidaForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const id = document.getElementById('saidaId').value;
+                const saida = {
+                    cliente: document.getElementById('saidaCliente').value,
+                    produto: document.getElementById('saidaProduto').value,
+                    quantidade: parseInt(document.getElementById('saidaQuantidade').value),
+                    valor: parseFloat(document.getElementById('saidaValor').value),
+                    status: document.getElementById('saidaStatus').value,
+                    observacao: document.getElementById('saidaObservacao').value
+                };
+                
+                if (id) {
+                    updateSaida(parseInt(id), saida);
+                    showToast('Pedido atualizado com sucesso!');
+                } else {
+                    addSaida(saida);
+                    showToast('Pedido adicionado com sucesso!');
+                }
+                
+                closeSaidaModal();
+                updateUI();
+            });
+            
+            // Exportar/Importar
+            document.getElementById('exportBtn').addEventListener('click', exportData);
+            document.getElementById('importBtn').addEventListener('click', openImportModal);
+            
+            document.getElementById('confirmImport').addEventListener('click', function() {
+                const data = document.getElementById('importData').value;
+                if (data && importData(data)) {
+                    closeImportModal();
+                    updateUI();
+                }
+            });
+            
+            document.getElementById('loadSampleData').addEventListener('click', function() {
+                if (confirm('Carregar dados de exemplo? Os dados atuais serão substituídos.')) {
+                    loadSampleData();
+                    closeImportModal();
+                    updateUI();
+                }
+            });
+            
+            // Links de ajuda
+            document.getElementById('showHelp').addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('Os dados são salvos automaticamente no LocalStorage do seu navegador. Para manter os dados, não limpe o histórico/cache do navegador.');
+            });
+            
+            document.getElementById('showExportHelp').addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('Use o botão "Exportar" para fazer backup dos dados em um arquivo JSON. Use "Importar" para restaurar esses dados posteriormente.');
+            });
+            
+            document.getElementById('clearAllData').addEventListener('click', function(e) {
+                e.preventDefault();
+                clearAllData();
+            });
+            
+            // Cards de estatísticas clicáveis
+            document.getElementById('statEntrada').addEventListener('click', () => {
+                const entradas = getEntradas();
+                if (entradas.length > 0) {
+                    openEntradaModal();
+                } else {
+                    showToast('Adicione sua primeira entrada!', 'warning');
+                }
+            });
+            
+            document.getElementById('statProcessamento').addEventListener('click', () => {
+                const processamentos = getProcessamentos();
+                if (processamentos.length > 0) {
+                    openProcessamentoModal();
+                } else {
+                    showToast('Crie sua primeira ordem de produção!', 'warning');
+                }
+            });
+            
+            document.getElementById('statSaida').addEventListener('click', () => {
+                const saidas = getSaidas();
+                if (saidas.length > 0) {
+                    openSaidaModal();
+                } else {
+                    showToast('Registre seu primeiro pedido de venda!', 'warning');
+                }
+            });
+            
+            // Adicionar eventos aos botões de empty state (adicionados dinamicamente)
+            document.addEventListener('click', function(e) {
+                if (e.target && e.target.id === 'addEntradaBtn') {
+                    openEntradaModal();
+                }
+                if (e.target && e.target.id === 'addProcessamentoBtn') {
+                    openProcessamentoModal();
+                }
+                if (e.target && e.target.id === 'addSaidaBtn') {
+                    openSaidaModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
